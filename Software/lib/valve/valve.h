@@ -42,10 +42,13 @@
             uint8_t in_1, in_2, ena, pot_pin, open_limit, close_limit;
             uint16_t open_limit_value, close_limit_value;
             double kp, ki, kd, integral_error, derivative_error, last_error, pid_output;
+            bool enable_last_millis, close_hit;
+            uint32_t last_millis;
 
             void move(int16_t speed);
             void open(uint8_t speed);
             void close(uint8_t speed);
+            void close_until_one_hit(void);
             void stop();
     };
 #endif

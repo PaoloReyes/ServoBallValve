@@ -5,8 +5,8 @@
 #define OPEN_LIMIT 9
 #define CLOSE_LIMIT 8
 #define INTERRUPT_PIN 2
-#define KP 8.5
-#define KI 8.0
-#define KD 1.5
+#define KP 16.5
+#define KI 12.5
+#define KD 1.9
 
 #define MAIN_CPP

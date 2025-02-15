@@ -39,7 +39,8 @@ Valve::Valve(uint8_t in_1, uint8_t in_2, uint8_t ena, uint8_t pot_pin, uint8_t o
 /// @param in_1 Input 1 pin
 /// @param in_2 Input 2 pin
 /// @param ena Enable pin
-/// @param pot_pin Potentiometer pin
+/// @param pot_pin Potentiometer pins
+
 /// @param open_limit Limit switch for open position
 /// @param close_limit Close switch for close position
 /// @param interrupt_pin Interrupt pin for pulse analysis
@@ -100,8 +101,8 @@ void Valve::set_angle(uint16_t setpoint_angle) {
 
 /// @brief Open valve until hit the open limit switch at 60% speed
 void Valve::open_until_hit() {
-    while (!this->is_open()) {
-        this->open(60);
+    while (this->is_open()) {
+        this->open(100);
         delay(10);
     }
     this->stop();
@@ -109,8 +110,8 @@ void Valve::open_until_hit() {
 
 /// @brief Close valve until hit the close limit switch at 60% speed
 void Valve::close_until_hit() {
-    while (!this->is_closed()) {
-        this->close(60);
+    while (this->is_closed()) {
+        this->close(100);
         delay(10);
     }
     this->stop();
@@ -130,7 +131,26 @@ bool Valve::is_closed() {
 
 /// @brief Take action to follow setpoint angle based on PID output on Timer1 interrupt
 void Valve::follow_setpoint() {
-    this->move(this->pid_output);
+    if (abs(Valve::setpoint_angle) < 2.5) {
+        if (this->enable_last_millis) {
+            this->last_millis = millis();
+            this->enable_last_millis = false;
+        }
+        if (millis()-this->last_millis > 500) {
+            if (!this->close_hit) {
+                while (this->is_closed()) {
+                    this->close(100);
+                }
+                this->close_hit = true;
+            } else {
+                this->stop();
+            }
+        }
+    } else {
+        this->move(this->pid_output);
+        this->enable_last_millis = true;
+        this->close_hit = false;
+    }
     Serial.print("Setpoint:");
     Serial.print(Valve::setpoint_angle);
     Serial.print(",");
@@ -163,7 +183,7 @@ void Valve::update(Valve* valve) {
     }
 
     valve->integral_error += error * ValveNS::TIMER_VALVE_S;
-    if (abs(error) > 3.0) {
+    if (abs(error) > 3.5) {
         valve->integral_error = 0.0;
     }
     valve->derivative_error = (error - valve->last_error) / ValveNS::TIMER_VALVE_S;
@@ -175,11 +195,7 @@ void Valve::update(Valve* valve) {
 /// @param speed Speed value
 void Valve::move(int16_t speed) {
     speed = constrain(speed, -100, 100);
-    if ((this->is_open() && Valve::setpoint_angle > 88.5) || (this->is_closed() && Valve::setpoint_angle < 1.51) || speed == 0) {
-        this->stop();
-    } else {
-        speed>0?this->open(speed):this->close(-speed);
-    }
+    speed>0?this->open(speed):this->close(-speed);
 }
 
 /// @brief Open valve at speed [0, 100]
@@ -187,8 +203,8 @@ void Valve::move(int16_t speed) {
 void Valve::open(uint8_t speed) {
     speed = map(speed, 0, 100, 0, 255);
     analogWrite(this->ena, speed);
-    digitalWrite(this->in_1, LOW);
-    digitalWrite(this->in_2, HIGH);
+    digitalWrite(this->in_1, HIGH);
+    digitalWrite(this->in_2, LOW);
 }
 
 /// @brief Close valve at speed [0, 100]
@@ -196,8 +212,8 @@ void Valve::open(uint8_t speed) {
 void Valve::close(uint8_t speed) {
     speed = map(speed, 0, 100, 0, 255);
     analogWrite(this->ena, speed);
-    digitalWrite(this->in_1, HIGH);
-    digitalWrite(this->in_2, LOW);
+    digitalWrite(this->in_1, LOW);
+    digitalWrite(this->in_2, HIGH);
 }
 
 /// @brief Stop valve

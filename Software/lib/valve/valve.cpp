@@ -131,26 +131,27 @@ bool Valve::is_closed() {
 
 /// @brief Take action to follow setpoint angle based on PID output on Timer1 interrupt
 void Valve::follow_setpoint() {
-    if (abs(Valve::setpoint_angle) < 2.5) {
-        if (this->enable_last_millis) {
-            this->last_millis = millis();
-            this->enable_last_millis = false;
-        }
-        if (millis()-this->last_millis > 500) {
-            if (!this->close_hit) {
-                while (this->is_closed()) {
-                    this->close(100);
-                }
-                this->close_hit = true;
-            } else {
-                this->stop();
-            }
-        }
-    } else {
-        this->move(this->pid_output);
-        this->enable_last_millis = true;
-        this->close_hit = false;
-    }
+    // if (abs(Valve::setpoint_angle) < 2.5) {
+    //     if (this->enable_last_millis) {
+    //         this->last_millis = millis();
+    //         this->enable_last_millis = false;
+    //     }
+    //     if (millis()-this->last_millis > 500) {
+    //         if (!this->close_hit) {
+    //             while (this->is_closed()) {
+    //                 this->close(100);
+    //             }
+    //             this->close_hit = true;
+    //         } else {
+    //             this->stop();
+    //         }
+    //     }
+    // } else {
+    //     this->move(this->pid_output);
+    //     this->enable_last_millis = true;
+    //     this->close_hit = false;
+    // }
+    this->move(this->pid_output);
     Serial.print("Setpoint:");
     Serial.print(Valve::setpoint_angle);
     Serial.print(",");
@@ -183,7 +184,7 @@ void Valve::update(Valve* valve) {
     }
 
     valve->integral_error += error * ValveNS::TIMER_VALVE_S;
-    if (abs(error) > 3.5) {
+    if (abs(error) > 3.0) {
         valve->integral_error = 0.0;
     }
     valve->derivative_error = (error - valve->last_error) / ValveNS::TIMER_VALVE_S;
@@ -195,7 +196,11 @@ void Valve::update(Valve* valve) {
 /// @param speed Speed value
 void Valve::move(int16_t speed) {
     speed = constrain(speed, -100, 100);
-    speed>0?this->open(speed):this->close(-speed);
+    if ((this->is_open() && Valve::setpoint_angle > 88.5) || (this->is_closed() && Valve::setpoint_angle < 1.51) || speed == 0) {
+        this->stop();
+    } else {
+        speed>0?this->open(speed):this->close(-speed);
+    }
 }
 
 /// @brief Open valve at speed [0, 100]

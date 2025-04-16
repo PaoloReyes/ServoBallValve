@@ -99,7 +99,7 @@ void Valve::set_angle(uint16_t setpoint_angle) {
     Valve::setpoint_angle = setpoint_angle;
 }
 
-/// @brief Open valve until hit the open limit switch at 60% speed
+/// @brief Open valve until hit the open limit switch at 100% speed
 void Valve::open_until_hit() {
     while (this->is_open()) {
         this->open(100);
@@ -108,7 +108,7 @@ void Valve::open_until_hit() {
     this->stop();
 }
 
-/// @brief Close valve until hit the close limit switch at 60% speed
+/// @brief Close valve until hit the close limit switch at 100% speed
 void Valve::close_until_hit() {
     while (this->is_closed()) {
         this->close(100);
